@@ -3,112 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROZ CUSTOM - Sistema de Gestión y Cotización</title>
-    <!-- Estilos CSS integrados -->
+    <title>ROZ CUSTOM - Sistema de Costos y Cotizaciones</title>
+    <!-- Librería de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --sidebar-bg: #1e293b;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-color: #3b82f6;
-            --accent-hover: #2563eb;
-            --border-color: #334155;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
             --success: #10b981;
             --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-color: #0f071a;
+            --card-bg: rgba(24, 16, 40, 0.94);
+            --text-main: #ffffff;
+            --text-muted: #d1d5db;
+            --border: #3b2856;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background: linear-gradient(135deg, #090310 0%, #1f0b38 100%);
+            color: var(--text-main);
             display: flex;
             height: 100vh;
             overflow: hidden;
         }
 
-        /* Sidebar */
-        aside {
-            width: 260px;
-            background-color: var(--sidebar-bg);
-            border-right: 1px solid var(--border-color);
+        /* Pantalla de Contraseña */
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #090310 0%, #1f0b38 100%);
             display: flex;
-            flex-direction: column;
-            transition: transform 0.3s ease;
-            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            padding: 20px;
         }
 
-        .sidebar-brand {
-            padding: 20px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--accent-color);
-            border-bottom: 1px solid var(--border-color);
+        .login-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+        }
+
+        .login-card h2 {
+            margin-bottom: 20px;
+            color: #ffffff;
+            font-size: 1.4rem;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+        }
+
+        .login-card input {
+            width: 100%;
+            padding: 10px 14px;
+            background-color: #0f071a;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            color: var(--text-main);
+            outline: none;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .login-card input:focus {
+            border-color: var(--primary);
+        }
+
+        .login-error {
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Contenedor Principal Oculto Inicialmente */
+        #app-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .app-layout {
             display: flex;
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Sidebar Navegación */
+        aside {
+            width: 260px;
+            background-color: #181028;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
             justify-content: space-between;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-area {
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ffffff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
             align-items: center;
+            gap: 10px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+        }
+
+        .logo-area img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 4px rgba(255,255,255,0.6));
         }
 
         .nav-links {
             list-style: none;
-            padding: 20px 0;
+            padding: 15px;
+            overflow-y: auto;
             flex-grow: 1;
         }
 
         .nav-links li {
-            padding: 12px 20px;
+            padding: 10px 12px;
+            margin-bottom: 5px;
+            border-radius: 6px;
             cursor: pointer;
             color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-weight: 500;
+            font-size: 0.95rem;
             transition: all 0.2s;
         }
 
         .nav-links li:hover, .nav-links li.active {
-            background-color: rgba(59, 130, 246, 0.1);
-            color: var(--accent-color);
-            border-left: 4px solid var(--accent-color);
+            background-color: rgba(139, 92, 246, 0.3);
+            color: #ffffff;
+            font-weight: 600;
         }
 
-        /* Main Content */
-        .main-container {
+        /* Botón de Menú Móvil (Hamburguesa) */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            margin-right: 15px;
+        }
+
+        /* Capa oscura de fondo cuando el menú abre en móvil */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 99;
+        }
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        /* Contenido Principal con Marca de Agua de la Piraña */
+        main {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+
+        main::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('piraña.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 55% auto;
+            opacity: 0.10;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header, .content-body {
+            position: relative;
+            z-index: 1;
         }
 
         header {
-            height: 60px;
-            background-color: var(--sidebar-bg);
-            border-bottom: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
+            align-items: center;
+            backdrop-filter: blur(5px);
         }
 
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 1.5rem;
-            cursor: pointer;
+        header h1 {
+            font-size: 1.2rem;
+            color: var(--text-main);
         }
 
-        .view-container {
-            flex-grow: 1;
-            overflow-y: auto;
+        .content-body {
             padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
         }
 
         .view-section {
@@ -119,91 +249,119 @@
             display: block;
         }
 
-        /* Tarjetas y Grid */
-        .grid-4 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
+        /* Tarjetas y Contenedores */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
             margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: #ffffff;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
         }
 
         .grid-2 {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
-            margin-bottom: 20px;
         }
 
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .card h3 {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
-        .card .value {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        /* Formularios y Tablas */
+        /* Formularios */
         .form-group {
             margin-bottom: 15px;
         }
 
         .form-group label {
             display: block;
-            font-size: 0.85rem;
-            color: var(--text-muted);
             margin-bottom: 5px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
         }
 
         .form-control {
             width: 100%;
-            padding: 10px;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            background-color: #0f071a;
+            border: 1px solid var(--border);
             border-radius: 6px;
-            color: var(--text-color);
+            font-size: 0.95rem;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        /* Celdas editables en tablas */
+        .editable-cell {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px dashed var(--border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: var(--text-main);
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        .editable-cell:focus {
+            background-color: #0f071a;
+            border: 1px solid var(--primary);
+            outline: none;
         }
 
         .btn {
-            background-color: var(--accent-color);
+            background-color: var(--primary);
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 10px 16px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 0.9rem;
             transition: background-color 0.2s;
         }
 
         .btn:hover {
-            background-color: var(--accent-hover);
+            background-color: var(--primary-hover);
         }
 
+        /* Contenedor con scroll horizontal para tablas en móvil */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Tablas */
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
+            font-size: 0.9rem;
+            min-width: 500px;
         }
 
         th, td {
-            padding: 12px;
+            padding: 10px 12px;
             text-align: left;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
         }
 
         th {
-            color: var(--text-muted);
-            background-color: rgba(255, 255, 255, 0.02);
+            background-color: #241738;
+            color: #ffffff;
+            font-weight: 600;
         }
 
         .badge {
@@ -213,259 +371,430 @@
             font-weight: bold;
         }
 
-        .badge-success { background-color: rgba(16, 185, 129, 0.2); color: var(--success); }
-        .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: var(--warning); }
-        
-        #sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 99;
+        .badge-success { background-color: rgba(16, 185, 129, 0.3); color: #34d399; }
+        .badge-danger { background-color: rgba(239, 68, 68, 0.3); color: #f87171; }
+        .badge-warning { background-color: rgba(245, 158, 11, 0.3); color: #fbbf24; }
+        .badge-info { background-color: rgba(139, 92, 246, 0.3); color: #d8b4fe; }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
-        #sidebar-overlay.active { display: block; }
+        .metric-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
 
-        @media (max-width: 768px) {
+        .metric-card h4 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .metric-card .value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        /* Caja de aviso de ganancia */
+        #margen-alerta {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* --- DISEÑO RESPONSIVO PARA TELÉFONOS (MEDIA QUERIES) --- */
+        @media (max-width: 900px) {
             aside {
                 position: fixed;
+                left: -260px;
                 height: 100%;
-                transform: translateX(-100%);
+                top: 0;
+                box-shadow: 5px 0 15px rgba(0,0,0,0.5);
             }
+
             aside.mobile-open {
-                transform: translateX(0);
+                left: 0;
             }
-            .menu-toggle {
+
+            .mobile-menu-btn {
                 display: block;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .metrics-grid .metric-card:last-child {
+                grid-column: span 2;
+            }
+
+            .content-body {
+                padding: 15px;
             }
         }
     </style>
 </head>
 <body>
 
-    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
-
-    <!-- Menú Lateral -->
-    <aside id="sidebar">
-        <div class="sidebar-brand">
-            ROZ CUSTOM
-        </div>
-        <ul class="nav-links">
-            <li class="active" onclick="switchView('dashboard', this)">📊 Dashboard</li>
-            <li onclick="switchView('cotizador', this)">🧮 Cotizador Inteligente</li>
-            <li onclick="switchView('seguimiento', this)">📋 Control de Pedidos</li>
-            <li onclick="switchView('inventario', this)">📦 Inventario & Insumos</li>
-            <li onclick="switchView('configuracion', this)">⚙️ Configuración</li>
-        </ul>
-    </aside>
-
-    <!-- Contenedor Principal -->
-    <div class="main-container">
-        <header>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-                <h2 id="view-title" style="font-size: 1.1rem;">Dashboard</h2>
-            </div>
-            <span style="font-size: 0.85rem; color: var(--text-muted);">Sesión Activa 🟢</span>
-        </header>
-
-        <div class="view-container">
-            <!-- VISTA: DASHBOARD -->
-            <div id="view-dashboard" class="view-section active">
-                <div class="grid-4">
-                    <div class="card">
-                        <h3>Ventas Totales</h3>
-                        <div class="value" id="dash-ventas">$0.00</div>
-                    </div>
-                    <div class="card">
-                        <h3>Ganancia Estimada</h3>
-                        <div class="value" id="dash-ganancia" style="color: var(--success);">$0.00</div>
-                    </div>
-                    <div class="card">
-                        <h3>Pedidos Activos</h3>
-                        <div class="value" id="dash-activos">0</div>
-                    </div>
-                    <div class="card">
-                        <h3>Insumos Críticos</h3>
-                        <div class="value" id="dash-criticos" style="color: var(--warning);">0</div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3 style="margin-bottom: 15px; color: var(--text-color);">Últimos Pedidos Registrados</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Folio</th>
-                                <th>Cliente</th>
-                                <th>Producto</th>
-                                <th>Cant.</th>
-                                <th>Total</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dash-ultimos-tabla">
-                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay pedidos recientes.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- VISTA: COTIZADOR -->
-            <div id="view-cotizador" class="view-section">
-                <div class="grid-2">
-                    <div class="card">
-                        <h3 style="margin-bottom: 15px; color: var(--text-color);">Parámetros de Cotización</h3>
-                        <div class="form-group">
-                            <label>Nombre del Cliente</label>
-                            <input type="text" id="cot-cliente" class="form-control" placeholder="Ej. Juan Pérez">
-                        </div>
-                        <div class="form-group">
-                            <label>Prenda / Producto Base</label>
-                            <select id="cot-producto" class="form-control" onchange="calcularCotizacion()"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Cantidad de Piezas</label>
-                            <input type="number" id="cot-cantidad" class="form-control" value="12" min="1" oninput="calcularCotizacion()">
-                        </div>
-                        <div class="form-group">
-                            <label>Número de Tintas / Pasadas</label>
-                            <input type="number" id="cot-tintas" class="form-control" value="1" min="1" oninput="calcularCotizacion()">
-                        </div>
-                        <div class="form-group">
-                            <label>Margen de Ganancia Deseado (%)</label>
-                            <input type="number" id="cot-margen" class="form-control" value="40" min="1" oninput="calcularCotizacion()">
-                        </div>
-                        <button class="btn" style="width: 100%; margin-top: 10px;" onclick="guardarCotizacion()">Guardar y Enviar a Pedidos</button>
-                    </div>
-
-                    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
-                        <div>
-                            <h3 style="margin-bottom: 15px; color: var(--text-color);">Desglose de Costos</h3>
-                            <table>
-                                <tr><td>Costo Base Prendas:</td><td id="res-base" style="text-align: right;">$0.00</td></tr>
-                                <tr><td>Costos Fijos (Prep):</td><td id="res-fijos" style="text-align: right;">$0.00</td></tr>
-                                <tr><td>Insumos Variables:</td><td id="res-variables" style="text-align: right;">$0.00</td></tr>
-                                <tr style="font-weight: bold; border-top: 2px solid var(--border-color);"><td>Costo Total Producción:</td><td id="res-total" style="text-align: right;">$0.00</td></tr>
-                                <tr><td>Costo Unitario Real:</td><td id="res-unitario" style="text-align: right;">$0.00</td></tr>
-                            </table>
-                        </div>
-                        <div style="background-color: rgba(59, 130, 246, 0.05); border: 1px solid var(--accent-color); padding: 15px; border-radius: 6px; margin-top: 20px;">
-                            <div style="font-size: 0.85rem; color: var(--text-muted);">Precio Sugerido Total Venta:</div>
-                            <div id="res-total-venta" style="font-size: 1.8rem; font-weight: bold; color: var(--accent-color);">$0.00</div>
-                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9rem;">
-                                <span>Ganancia por pieza: <strong id="res-ganancia-pieza" style="color: var(--success);">$0.00</strong></span>
-                                <span>Ganancia Total: <strong id="res-ganancia-total" style="color: var(--success);">$0.00</strong></span>
-                            </div>
-                        </div>
-                        <div id="margen-alerta" style="margin-top: 15px; padding: 10px; border-radius: 6px; font-size: 0.85rem; text-align: center;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VISTA: SEGUIMIENTO DE PEDIDOS -->
-            <div id="view-seguimiento" class="view-section">
-                <div class="card">
-                    <h3 style="margin-bottom: 15px; color: var(--text-color);">Control y Estado de Pedidos</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Folio</th>
-                                <th>Cliente</th>
-                                <th>Descripción</th>
-                                <th>Total</th>
-                                <th>Estado</th>
-                                <th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-seguimiento">
-                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay pedidos en curso.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- VISTA: INVENTARIO -->
-            <div id="view-inventario" class="view-section">
-                <div class="grid-2">
-                    <div class="card">
-                        <h3 style="margin-bottom: 15px; color: var(--text-color);">Inventario de Productos Base</h3>
-                        <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-                            <input type="text" id="new-prod-id" class="form-control" placeholder="ID (ej. PL-01)">
-                            <input type="text" id="new-prod-modelo" class="form-control" placeholder="Modelo (ej. Playera Peso Completo)">
-                        </div>
-                        <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-                            <input type="text" id="new-prod-detalle" class="form-control" placeholder="Detalle (Color/Talla)">
-                            <input type="number" id="new-prod-costo" class="form-control" placeholder="Costo Compra Total">
-                            <input type="number" id="new-prod-stock" class="form-control" placeholder="Stock">
-                        </div>
-                        <button class="btn" onclick="agregarProductoBase()">Registrar Producto</button>
-                        <table style="margin-top: 15px;">
-                            <thead><tr><th>ID</th><th>Modelo</th><th>Detalle</th><th>Costo</th><th>Stock</th></tr></thead>
-                            <tbody id="tabla-inventario-productos"></tbody>
-                        </table>
-                    </div>
-
-                    <div class="card">
-                        <h3 style="margin-bottom: 15px; color: var(--text-color);">Inventario de Insumos (Tintas / Vinil)</h3>
-                        <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-                            <input type="text" id="new-ins-id" class="form-control" placeholder="ID (ej. TINT-01)">
-                            <input type="text" id="new-ins-cat" class="form-control" placeholder="Categoría (Serigrafía)">
-                        </div>
-                        <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-                            <input type="text" id="new-ins-nombre" class="form-control" placeholder="Nombre del insumo">
-                            <input type="number" id="new-ins-costo" class="form-control" placeholder="Costo medida">
-                            <input type="number" id="new-ins-stock" class="form-control" placeholder="Stock">
-                        </div>
-                        <button class="btn" onclick="agregarInsumo()">Registrar Insumo</button>
-                        <table style="margin-top: 15px;">
-                            <thead><tr><th>ID</th><th>Categoría</th><th>Nombre</th><th>Costo</th><th>Stock</th></tr></thead>
-                            <tbody id="tabla-inventario-insumos"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VISTA: CONFIGURACIÓN -->
-            <div id="view-configuracion" class="view-section">
-                <div class="card" style="max-width: 500px;">
-                    <h3 style="margin-bottom: 15px; color: var(--text-color);">Parámetros Globales de Costeo</h3>
-                    <div class="form-group">
-                        <label>Costo Fijo de Preparación / Arranque ($)</label>
-                        <input type="number" id="cfg-fijo" class="form-control" value="400" oninput="guardarConfiguracion()">
-                    </div>
-                    <div class="form-group">
-                        <label>Costo Variable por Tinta / Aplicación ($)</label>
-                        <input type="number" id="cfg-variable" class="form-control" value="28" oninput="guardarConfiguracion()">
-                    </div>
-                    <button class="btn" style="width: 100%; margin-top: 10px;" onclick="alert('Configuración guardada correctamente.')">Guardar Cambios</button>
-                </div>
-            </div>
+    <!-- PANTALLA DE ACCESO POR CONTRASEÑA -->
+    <div id="login-screen">
+        <div class="login-card">
+            <h2>ROZ CUSTOM</h2>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">Ingrese la contraseña del sistema</p>
+            <input type="password" id="acceso-password" placeholder="Contraseña..." onkeypress="verificarEnter(event)">
+            <button class="btn" style="width: 100%;" onclick="validarPassword()">Ingresar</button>
+            <div id="login-error" class="login-error">Contraseña incorrecta</div>
         </div>
     </div>
 
-    <!-- Script JavaScript Completo -->
+    <!-- CAPA OSCURA PARA CERRAR MENÚ MÓVIL -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- CONTENEDOR DE LA APLICACIÓN (OCULTO HASTA AUTENTICARSE) -->
+    <div id="app-container">
+        <div class="app-layout">
+            <!-- SIDEBAR -->
+            <aside id="sidebar">
+                <div>
+                    <div class="logo-area">
+                        <img src="avispa.png" alt="Avispa Logo">
+                        <span>ROZ CUSTOM</span>
+                    </div>
+                    <ul class="nav-links">
+                        <li class="active" onclick="switchView('dashboard', this)">📊 Dashboard General</li>
+                        <li onclick="switchView('cotizador', this)">💡 Cotizador Dinámico</li>
+                        <li onclick="switchView('seguimiento', this)">📋 Control de Pedidos</li>
+                        <li onclick="switchView('inventario', this)">📦 Inventario Productos</li>
+                        <li onclick="switchView('insumos', this)">🎨 Inventario Insumos</li>
+                        <li onclick="switchView('costos', this)">⚙️ Costos y Utilidades</li>
+                    </ul>
+                </div>
+                <div style="padding: 15px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border);">
+                    ROZ System v2.9 (Cloud)
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT -->
+            <main>
+                <header>
+                    <div style="display: flex; align-items: center;">
+                        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+                        <h1 id="view-title">Dashboard General</h1>
+                    </div>
+                    <div id="header-actions">
+                        <button class="btn" onclick="switchView('cotizador', document.querySelectorAll('.nav-links li')[1])">+ Nueva</button>
+                    </div>
+                </header>
+
+                <div class="content-body">
+
+                    <!-- 1. DASHBOARD -->
+                    <section id="view-dashboard" class="view-section active">
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <h4>Ventas del Mes</h4>
+                                <div class="value" id="dash-ventas">$0.00</div>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Ganancia Total</h4>
+                                <div class="value" id="dash-ganancia" style="color: #34d399;">$0.00</div>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Pedidos Activos</h4>
+                                <div class="value" id="dash-activos">0</div>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Utilidad Promedio</h4>
+                                <div class="value">40%</div>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Insumos Críticos</h4>
+                                <div class="value" id="dash-criticos" style="color: var(--danger);">0</div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>Últimos Pedidos Registrados</h3>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Cliente</th>
+                                            <th>Producto</th>
+                                            <th>Cant.</th>
+                                            <th>Total</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dash-ultimos-tabla">
+                                        <!-- Dinámico -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 2. COTIZADOR INTELIGENTE -->
+                    <section id="view-cotizador" class="view-section">
+                        <div class="grid-2">
+                            <div class="card">
+                                <h3>📌 Parámetros del Pedido</h3>
+                                <div class="form-group">
+                                    <label>Nombre del Cliente</label>
+                                    <input type="text" id="cot-cliente" class="form-control" value="Cliente General">
+                                </div>
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label>Seleccionar Producto Base</label>
+                                        <select id="cot-producto" class="form-control" onchange="calcularCotizacion()">
+                                            <!-- Dinámico -->
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Cantidad de Piezas</label>
+                                        <input type="number" id="cot-cantidad" class="form-control" value="12" min="1" oninput="calcularCotizacion()">
+                                    </div>
+                                </div>
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label>Número de Tintas (Colores)</label>
+                                        <input type="number" id="cot-tintas" class="form-control" value="3" min="1" oninput="calcularCotizacion()">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Margen de Utilidad Deseado (%)</label>
+                                        <input type="number" id="cot-margen" class="form-control" value="40" oninput="calcularCotizacion()">
+                                    </div>
+                                </div>
+                                <!-- Alerta dinámica de rentabilidad -->
+                                <div id="margen-alerta">Evaluando margen...</div>
+                            </div>
+
+                            <div class="card" style="background: rgba(20, 12, 33, 0.95);">
+                                <h3>💰 Desglose y Resultados Automáticos</h3>
+                                <div class="table-responsive">
+                                    <table>
+                                        <tr>
+                                            <td>Costo Base Productos:</td>
+                                            <td id="res-base" style="font-weight: bold; text-align: right;">$0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Costos Fijos (Preparación/Marcos):</td>
+                                            <td id="res-fijos" style="font-weight: bold; text-align: right;">$400.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Costos Variables Tintas/Insumos:</td>
+                                            <td id="res-variables" style="font-weight: bold; text-align: right;">$0.00</td>
+                                        </tr>
+                                        <tr style="border-top: 2px solid var(--border);">
+                                            <td><strong>Costo Total del Pedido:</strong></td>
+                                            <td id="res-total" style="font-weight: bold; text-align: right; color: #d8b4fe;">$0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Costo Unitario Real:</strong></td>
+                                            <td id="res-unitario" style="font-weight: bold; text-align: right;">$0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Precio Sugerido Venta (Pieza):</strong></td>
+                                            <td id="res-sugerido" style="font-weight: bold; text-align: right; color: #34d399;">$0.00</td>
+                                        </tr>
+                                        <tr style="background: rgba(16, 185, 129, 0.1);">
+                                            <td><strong>Ganancia Neta por Pieza:</strong></td>
+                                            <td id="res-ganancia-pieza" style="font-weight: bold; text-align: right; color: #34d399;">$0.00</td>
+                                        </tr>
+                                        <tr style="background: rgba(16, 185, 129, 0.15);">
+                                            <td><strong>Ganancia Total del Pedido:</strong></td>
+                                            <td id="res-ganancia-total" style="font-weight: bold; text-align: right; color: #6ee7b7;">$0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Total Venta Sugerido:</strong></td>
+                                            <td id="res-total-venta" style="font-weight: bold; text-align: right; color: #34d399;">$0.00</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <button class="btn" style="width: 100%; margin-top: 20px;" onclick="guardarCotizacion()">Guardar Cotización</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 3. SEGUIMIENTO DE COTIZACIONES Y PEDIDOS -->
+                    <section id="view-seguimiento" class="view-section">
+                        <div class="card">
+                            <h3>📋 Control y Seguimiento de Cotizaciones / Pedidos</h3>
+                            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">
+                                Cambia el estado para descontar inventario automáticamente al aceptar, o cerrar el ciclo al entregar.
+                            </p>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Cliente</th>
+                                            <th>Producto / Cant.</th>
+                                            <th>Total Venta</th>
+                                            <th>Estado Actual</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-seguimiento">
+                                        <!-- Dinámico -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 4. INVENTARIO PRODUCTOS -->
+                    <section id="view-inventario" class="view-section">
+                        <div class="card">
+                            <h3>📦 Registrar Nuevo Producto Base</h3>
+                            <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                                <input type="text" id="new-prod-id" class="form-control" placeholder="ID (ej. PL-002)" style="width: 120px;">
+                                <input type="text" id="new-prod-modelo" class="form-control" placeholder="Modelo (Playera Manga Larga)" style="flex: 1; min-width: 180px;">
+                                <input type="text" id="new-prod-detalle" class="form-control" placeholder="Detalle (Negra / L)" style="flex: 1; min-width: 150px;">
+                                <input type="number" id="new-prod-costo" class="form-control" placeholder="Costo Compra Total" style="width: 150px;">
+                                <input type="number" id="new-prod-stock" class="form-control" placeholder="Stock" style="width: 90px;">
+                                <button class="btn" onclick="agregarProductoBase()">Registrar</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>📝 Listado de Prendas y Soportes (Modificables directamente)</h3>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Modelo</th>
+                                            <th>Detalle</th>
+                                            <th>Costo Compra</th>
+                                            <th>Costo Unitario</th>
+                                            <th>Stock</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-inventario-productos">
+                                        <!-- Dinámico editable -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 5. INVENTARIO INSUMOS -->
+                    <section id="view-insumos" class="view-section">
+                        <div class="card">
+                            <h3>🎨 Registrar Nuevo Insumo</h3>
+                            <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                                <input type="text" id="new-ins-id" class="form-control" placeholder="ID (ej. IN-006)" style="width: 120px;">
+                                <input type="text" id="new-ins-cat" class="form-control" placeholder="Categoría" style="width: 150px;">
+                                <input type="text" id="new-ins-nombre" class="form-control" placeholder="Nombre" style="flex: 1; min-width: 180px;">
+                                <input type="number" id="new-ins-costo" class="form-control" placeholder="Costo Medida" style="width: 130px;">
+                                <input type="number" id="new-ins-stock" class="form-control" placeholder="Stock" style="width: 100px;">
+                                <button class="btn" onclick="agregarInsumo()">Registrar</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>📝 Listado de Insumos (Modificables directamente)</h3>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Categoría</th>
+                                            <th>Insumo</th>
+                                            <th>Costo Medida</th>
+                                            <th>Stock Actual</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-inventario-insumos">
+                                        <!-- Dinámico editable -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 6. COSTOS Y UTILIDADES -->
+                    <section id="view-costos" class="view-section">
+                        <div class="grid-2">
+                            <div class="card">
+                                <h3>🔴 Configuración de Costos Fijos</h3>
+                                <div class="form-group">
+                                    <label>Costo fijo por preparación / marcos ($)</label>
+                                    <input type="number" id="cfg-fijo" class="form-control" value="400" onchange="guardarConfiguracion()">
+                                </div>
+                            </div>
+                            <div class="card">
+                                <h3>🟢 Configuración de Costos Variables</h3>
+                                <div class="form-group">
+                                    <label>Costo variable base por pieza ($)</label>
+                                    <input type="number" id="cfg-variable" class="form-control" value="28" onchange="guardarConfiguracion()">
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
     <script>
-        // Datos iniciales de prueba locales
-        let inventarioProductos = [
-            { id: 'PL-01', modelo: 'Playera Heavy Weight', detalle: 'Negro - G', costo_compra: 650, costo_unitario: 65, stock: 10 },
-            { id: 'ST-01', modelo: 'Sticker Vinil Troquelado', detalle: 'Mate 10x10cm', costo_compra: 300, costo_unitario: 3, stock: 100 }
-        ];
+        // CONFIGURACIÓN DE SUPABASE
+        const SUPABASE_URL = 'https://kkeagmmwnmjnecozxwat.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_lof61l1ntwlUQpw7FC3kRw_W1t0D_t5';
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let inventarioInsumos = [
-            { id: 'INS-01', categoria: 'Serigrafía', nombre: 'Emulsión fotográfica', costo_medida: 120, stock: 4 },
-            { id: 'INS-02', categoria: 'Tintas', nombre: 'Plastisol Blanco', costo_medida: 250, stock: 8 }
-        ];
+        // CONTRASEÑA DE ACCESO CONFIGURADA
+        const PASSWORD_SISTEMA = "RozCustom";
 
+        // Variables globales en memoria sincronizadas con Supabase
+        let inventarioProductos = [];
+        let inventarioInsumos = [];
         let cotizaciones = [];
         let config = { fijo: 400, variable: 28 };
 
-        // Inicializar vistas al cargar
-        window.onload = function() {
-            poblarSelectProductos();
-            renderizarInventarioProductos();
-            renderizarInventarioInsumos();
-            calcularCotizacion();
-        };
+        async function validarPassword() {
+            let passInput = document.getElementById('acceso-password').value;
+            let errorDiv = document.getElementById('login-error');
+
+            if(passInput === PASSWORD_SISTEMA) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                
+                // Cargar datos iniciales desde la nube
+                await cargarDatosNube();
+            } else {
+                errorDiv.style.display = 'block';
+                document.getElementById('acceso-password').value = '';
+            }
+        }
+
+        function verificarEnter(event) {
+            if(event.key === 'Enter') {
+                validarPassword();
+            }
+        }
 
         function toggleSidebar() {
             let sidebar = document.getElementById('sidebar');
@@ -474,247 +803,513 @@
             overlay.classList.toggle('active');
         }
 
+        // CARGAR DATOS DESDE SUPABASE
+        async function cargarDatosNube() {
+            try {
+                // 1. Productos
+                let { data: prodData } = await _supabase.from('productos').select('*');
+                if (prodData && prodData.length > 0) {
+                    inventarioProductos = prodData.map(p => ({
+                        id: p.id,
+                        modelo: p.modelo,
+                        detalle: p.detalle,
+                        costoCompra: Number(p.costo_compra),
+                        costoUnitario: Number(p.costo_unitario),
+                        stock: Number(p.stock)
+                    }));
+                } else {
+                    inventarioProductos = [
+                        { id: 'PL-001', modelo: 'Playera Básica', detalle: 'Blanca / M (Paq 12)', costoCompra: 2990, costoUnitario: 249.17, stock: 12 },
+                        { id: 'SU-001', modelo: 'Sudadera Hoodie', detalle: 'Negra / G (Paq 6)', costoCompra: 2400, costoUnitario: 400.00, stock: 6 },
+                        { id: 'BO-001', modelo: 'Bolsa Tote Bag', detalle: 'Natural / Única', costoCompra: 1000, costoUnitario: 50.00, stock: 20 }
+                    ];
+                    for(let p of inventarioProductos) {
+                        await _supabase.from('productos').insert({ id: p.id, modelo: p.modelo, detalle: p.detalle, costo_compra: p.costoCompra, costo_unitario: p.costoUnitario, stock: p.stock });
+                    }
+                }
+
+                // 2. Insumos
+                let { data: insData } = await _supabase.from('insumos').select('*');
+                if (insData && insData.length > 0) {
+                    inventarioInsumos = insData.map(i => ({
+                        id: i.id,
+                        categoria: i.categoria,
+                        nombre: i.nombre,
+                        costoMedida: Number(i.costo_medida),
+                        stock: Number(i.stock),
+                        min: Number(i.min || 20)
+                    }));
+                } else {
+                    inventarioInsumos = [
+                        { id: 'IN-001', categoria: 'Tintas', nombre: 'Tinta Negra (ml)', costoMedida: 0.30, stock: 850, min: 300 },
+                        { id: 'IN-002', categoria: 'Tintas', nombre: 'Tinta Blanca (ml)', costoMedida: 0.40, stock: 200, min: 300 },
+                        { id: 'IN-005', categoria: 'Empaque', nombre: 'Bolsas Celofán (pzas)', costoMedida: 2.00, stock: 85, min: 20 }
+                    ];
+                    for(let i of inventarioInsumos) {
+                        await _supabase.from('insumos').insert({ id: i.id, categoria: i.categoria, nombre: i.nombre, costo_medida: i.costoMedida, stock: i.stock, min: i.min });
+                    }
+                }
+
+                // 3. Cotizaciones
+                let { data: cotData } = await _supabase.from('cotizaciones').select('*');
+                if (cotData) {
+                    cotizaciones = cotData.map(c => ({
+                        id: c.id,
+                        cliente: c.cliente,
+                        prodId: c.prod_id,
+                        productoNombre: c.producto_nombre,
+                        cantidad: Number(c.cantidad),
+                        tintas: Number(c.tintas),
+                        totalVenta: Number(c.total_venta),
+                        gananciaTotal: Number(c.ganancia_total),
+                        estado: c.estado,
+                        inventarioDescontado: c.inventario_descontado
+                    }));
+                }
+
+                // 4. Configuración
+                let { data: cfgData } = await _supabase.from('config').select('*');
+                if (cfgData && cfgData.length > 0) {
+                    cfgData.forEach(c => {
+                        if(c.clave === 'fijo') config.fijo = Number(c.valor);
+                        if(c.clave === 'variable') config.variable = Number(c.valor);
+                    });
+                }
+
+                // Render inicial
+                document.getElementById('cfg-fijo').value = config.fijo;
+                document.getElementById('cfg-variable').value = config.variable;
+                actualizarSelectProductos();
+                renderDashboard();
+
+            } catch (err) {
+                console.error("Error al sincronizar con Supabase:", err);
+            }
+        }
+
         function switchView(viewId, element) {
             document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
             document.getElementById('view-' + viewId).classList.add('active');
 
-            if(element) {
-                document.getElementById('view-title').innerText = element.innerText.replace(/^[^\w\s]+/, '').trim();
-            }
-
             document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active'));
-            if(element) element.classList.add('active');
+            element.classList.add('active');
 
-            let sidebar = document.getElementById('sidebar');
-            let overlay = document.getElementById('sidebar-overlay');
-            if(sidebar.classList.contains('mobile-open')) {
-                sidebar.classList.remove('mobile-open');
-                overlay.classList.remove('active');
+            document.getElementById('view-title').innerText = element.innerText.replace(/^[^\w\s]+/, '').trim();
+            
+            // Cerrar menú lateral en móvil al navegar
+            if(window.innerWidth <= 900) {
+                document.getElementById('sidebar').classList.remove('mobile-open');
+                document.getElementById('sidebar-overlay').classList.remove('active');
             }
+
+            if(viewId === 'seguimiento') renderSeguimiento();
+            if(viewId === 'inventario') renderInventarioProductos();
+            if(viewId === 'insumos') renderInventarioInsumos();
+            if(viewId === 'dashboard') renderDashboard();
+            if(viewId === 'cotizador') actualizarSelectProductos();
         }
 
-        function poblarSelectProductos() {
+        function actualizarSelectProductos() {
             let select = document.getElementById('cot-producto');
             if(!select) return;
             select.innerHTML = '';
-            inventarioProductos.forEach(prod => {
+            inventarioProductos.forEach(p => {
                 let opt = document.createElement('option');
-                opt.value = prod.id;
-                opt.text = `${prod.modelo} (${prod.detalle}) - $${prod.costo_unitario || 0}`;
+                opt.value = p.id;
+                opt.setAttribute('data-precio', p.costoUnitario);
+                opt.setAttribute('data-nombre', `${p.modelo} (${p.detalle})`);
+                opt.innerText = `${p.modelo} - ${p.detalle} [Stock: ${p.stock}]`;
                 select.appendChild(opt);
             });
             calcularCotizacion();
         }
 
         function calcularCotizacion() {
-            let prodId = document.getElementById('cot-producto').value;
-            let prod = inventarioProductos.find(p => p.id === prodId);
+            let selectProd = document.getElementById('cot-producto');
+            if(!selectProd || selectProd.options.length === 0) return;
+            
+            let costoProductoUnitario = parseFloat(selectProd.options[selectProd.selectedIndex].getAttribute('data-precio')) || 0;
             let cantidad = parseInt(document.getElementById('cot-cantidad').value) || 1;
             let tintas = parseInt(document.getElementById('cot-tintas').value) || 1;
-            let margenDeseado = parseFloat(document.getElementById('cot-margen').value) || 40;
+            let margen = parseFloat(document.getElementById('cot-margen').value) || 40;
 
-            let costoUnitarioPrenda = prod ? (prod.costo_unitario || (prod.costo_compra / (prod.stock || 1))) : 0;
-            let costoBaseTotal = costoUnitarioPrenda * cantidad;
+            let alertaBox = document.getElementById('margen-alerta');
+            if(margen < 15) {
+                alertaBox.style.backgroundColor = 'rgba(239, 68, 68, 0.25)';
+                alertaBox.style.color = '#f87171';
+                alertaBox.innerHTML = '❌ Margen muy bajo: Riesgo de pérdida';
+            } else if(margen < 30) {
+                alertaBox.style.backgroundColor = 'rgba(245, 158, 11, 0.25)';
+                alertaBox.style.color = '#fbbf24';
+                alertaBox.innerHTML = '⚠️ Margen bajo: Ganancia reducida';
+            } else if(margen < 45) {
+                alertaBox.style.backgroundColor = 'rgba(139, 92, 246, 0.25)';
+                alertaBox.style.color = '#d8b4fe';
+                alertaBox.innerHTML = 'ℹ️ Margen estándar: Ganancia accesible';
+            } else if(margen <= 60) {
+                alertaBox.style.backgroundColor = 'rgba(16, 185, 129, 0.25)';
+                alertaBox.style.color = '#34d399';
+                alertaBox.innerHTML = '✅ Margen óptimo: Buena ganancia';
+            } else {
+                alertaBox.style.backgroundColor = 'rgba(16, 185, 129, 0.35)';
+                alertaBox.style.color = '#6ee7b7';
+                alertaBox.innerHTML = '🌟 ¡Excelente margen y rentabilidad!';
+            }
+
+            let costoBaseTotal = costoProductoUnitario * cantidad;
+            let costoFijoTotal = parseFloat(config.fijo) || 400;
             
-            let costoFijoPrep = parseFloat(document.getElementById('cfg-fijo').value) || 400;
-            let costoVarInsumos = (parseFloat(document.getElementById('cfg-variable').value) || 28) * tintas * cantidad;
+            let varBaseUnitario = parseFloat(config.variable) || 28;
+            let costoVariableUnitario = varBaseUnitario + (tintas * 12); 
+            let costoVariableTotal = costoVariableUnitario * cantidad;
 
-            let costoTotalPedido = costoBaseTotal + costoFijoPrep + costoVarInsumos;
+            let costoTotalPedido = costoBaseTotal + costoFijoTotal + costoVariableTotal;
             let costoUnitarioReal = costoTotalPedido / cantidad;
 
-            let precioSugeridoPieza = costoUnitarioReal / (1 - (margenDeseado / 100));
-            let totalVentaSugerido = precioSugeridoPieza * cantidad;
-            let gananciaTotal = totalVentaSugerido - costoTotalPedido;
-            let gananciaPieza = gananciaTotal / cantidad;
+            let precioUnitarioSugerido = costoUnitarioReal / (1 - (margen / 100));
+            let totalVentaSugerido = precioUnitarioSugerido * cantidad;
 
-            document.getElementById('res-base').innerText = `$${costoBaseTotal.toFixed(2)}`;
-            document.getElementById('res-fijos').innerText = `$${costoFijoPrep.toFixed(2)}`;
-            document.getElementById('res-variables').innerText = `$${costoVarInsumos.toFixed(2)}`;
-            document.getElementById('res-total').innerText = `$${costoTotalPedido.toFixed(2)}`;
-            document.getElementById('res-unitario').innerText = `$${costoUnitarioReal.toFixed(2)}`;
-            document.getElementById('res-sugerido')?.innerText ? document.getElementById('res-sugerido').innerText = `$${precioSugeridoPieza.toFixed(2)}` : null;
-            document.getElementById('res-ganancia-pieza').innerText = `$${gananciaPieza.toFixed(2)}`;
-            document.getElementById('res-ganancia-total').innerText = `$${gananciaTotal.toFixed(2)}`;
-            document.getElementById('res-total-venta').innerText = `$${totalVentaSugerido.toFixed(2)}`;
+            let gananciaNetaPieza = precioUnitarioSugerido - costoUnitarioReal;
+            let gananciaNetaTotal = totalVentaSugerido - costoTotalPedido;
 
-            let alerta = document.getElementById('margen-alerta');
-            if (margenDeseado < 30) {
-                alerta.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
-                alerta.style.color = '#f87171';
-                alerta.innerText = '⚠️ Margen bajo: Riesgo de poca rentabilidad.';
-            } else {
-                alerta.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
-                alerta.style.color = '#34d399';
-                alerta.innerText = '✅ Margen saludable para el negocio.';
-            }
+            document.getElementById('res-base').innerText = '$' + costoBaseTotal.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            document.getElementById('res-fijos').innerText = '$' + costoFijoTotal.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            document.getElementById('res-variables').innerText = '$' + costoVariableTotal.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            document.getElementById('res-total').innerText = '$' + costoTotalPedido.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            document.getElementById('res-unitario').innerText = '$' + costoUnitarioReal.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            document.getElementById('res-sugerido').innerText = '$' + precioUnitarioSugerido.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            
+            document.getElementById('res-ganancia-pieza').innerText = '$' + gananciaNetaPieza.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            document.getElementById('res-ganancia-total').innerText = '$' + gananciaNetaTotal.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            document.getElementById('res-total-venta').innerText = '$' + totalVentaSugerido.toLocaleString('es-MX', {minimumFractionDigits: 2});
+
+            return { totalVenta: totalVentaSugerido, gananciaTotal: gananciaNetaTotal, prodId: selectProd.value, cantidad, tintas };
         }
 
-        function guardarCotizacion() {
-            let cliente = document.getElementById('cot-cliente').value || 'Cliente General';
-            let prodId = document.getElementById('cot-producto').value;
-            let prod = inventarioProductos.find(p => p.id === prodId);
-            let cantidad = parseInt(document.getElementById('cot-cantidad').value) || 1;
-            let totalVenta = parseFloat(document.getElementById('res-total-venta').innerText.replace('$', '')) || 0;
+        async function guardarCotizacion() {
+            let cliente = document.getElementById('cot-cliente').value.trim() || 'Cliente General';
+            let selectProd = document.getElementById('cot-producto');
+            let prodId = selectProd.value;
+            let productoNombre = selectProd.options[selectProd.selectedIndex].getAttribute('data-nombre');
+            let calc = calcularCotizacion();
 
-            let nuevoPedido = {
-                id: 'PED-' + Math.floor(1000 + Math.random() * 9000),
+            let nuevoId = 'COT-00' + (cotizaciones.length + 1);
+
+            let nuevaCot = {
+                id: nuevoId,
                 cliente: cliente,
-                producto: prod ? `${prod.modelo} (${prod.detalle})` : 'Personalizado',
-                cantidad: cantidad,
-                total: totalVenta,
-                estado: 'Pendiente'
+                prodId: prodId,
+                productoNombre: productoNombre,
+                cantidad: calc.cantidad,
+                tintas: calc.tintas,
+                totalVenta: calc.totalVenta,
+                gananciaTotal: calc.gananciaTotal,
+                estado: 'Cotización',
+                inventarioDescontado: false
             };
 
-            cotizaciones.unshift(nuevoPedido);
+            cotizaciones.push(nuevaCot);
 
-            alert('¡Cotización guardada exitosamente en Control de Pedidos!');
+            await _supabase.from('cotizaciones').insert({
+                id: nuevaCot.id,
+                cliente: nuevaCot.cliente,
+                prod_id: nuevaCot.prodId,
+                producto_nombre: nuevaCot.productoNombre,
+                cantidad: nuevaCot.cantidad,
+                tintas: nuevaCot.tintas,
+                total_venta: nuevaCot.totalVenta,
+                ganancia_total: nuevaCot.gananciaTotal,
+                estado: nuevaCot.estado,
+                inventario_descontado: nuevaCot.inventarioDescontado
+            });
+
+            alert('¡Cotización guardada exitosamente con ID ' + nuevoId + '!');
             switchView('seguimiento', document.querySelectorAll('.nav-links li')[2]);
-            renderizarSeguimiento();
-            actualizarDashboard();
         }
 
-        function renderizarSeguimiento() {
-            let tbody = document.getElementById('tabla-seguimiento');
-            if(!tbody) return;
-            if(cotizaciones.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay pedidos en curso.</td></tr>`;
+        async function cambiarEstadoCotizacion(id, nuevoEstado) {
+            let cot = cotizaciones.find(c => c.id === id);
+            if(!cot) return;
+
+            if(nuevoEstado === 'Aceptado' && !cot.inventarioDescontado) {
+                let prod = inventarioProductos.find(p => p.id === cot.prodId);
+                if(prod) {
+                    prod.stock -= cot.cantidad;
+                    await _supabase.from('productos').update({ stock: prod.stock }).eq('id', prod.id);
+                }
+
+                let tintaNegra = inventarioInsumos.find(i => i.id === 'IN-001');
+                if(tintaNegra) {
+                    tintaNegra.stock -= (cot.tintas * 20);
+                    await _supabase.from('insumos').update({ stock: tintaNegra.stock }).eq('id', tintaNegra.id);
+                }
+
+                cot.inventarioDescontado = true;
+                cot.estado = 'En Producción';
+            } else if(nuevoEstado === 'Rechazado') {
+                if(cot.inventarioDescontado) {
+                    let prod = inventarioProductos.find(p => p.id === cot.prodId);
+                    if(prod) {
+                        prod.stock += cot.cantidad;
+                        await _supabase.from('productos').update({ stock: prod.stock }).eq('id', prod.id);
+                    }
+                    cot.inventarioDescontado = false;
+                }
+                cot.estado = 'Rechazado';
+            } else {
+                cot.estado = nuevoEstado;
+            }
+
+            await _supabase.from('cotizaciones').update({
+                estado: cot.estado,
+                inventario_descontado: cot.inventarioDescontado
+            }).eq('id', cot.id);
+
+            renderSeguimiento();
+        }
+
+        async function agregarProductoBase() {
+            let id = document.getElementById('new-prod-id').value.trim();
+            let modelo = document.getElementById('new-prod-modelo').value.trim();
+            let detalle = document.getElementById('new-prod-detalle').value.trim();
+            let costoCompra = parseFloat(document.getElementById('new-prod-costo').value) || 0;
+            let stock = parseInt(document.getElementById('new-prod-stock').value) || 0;
+
+            if(!id || !modelo) {
+                alert('Por favor llena al menos el ID y el Modelo.');
                 return;
             }
+
+            let costoUnitario = costoCompra > 0 && stock > 0 ? costoCompra / stock : 0;
+            let nuevoProd = { id, modelo, detalle, costoCompra, costoUnitario, stock };
+
+            inventarioProductos.push(nuevoProd);
+
+            await _supabase.from('productos').insert({
+                id: nuevoProd.id,
+                modelo: nuevoProd.modelo,
+                detalle: nuevoProd.detalle,
+                costo_compra: nuevoProd.costoCompra,
+                costo_unitario: nuevoProd.costoUnitario,
+                stock: nuevoProd.stock
+            });
+
+            renderInventarioProductos();
+            actualizarSelectProductos();
+
+            document.getElementById('new-prod-id').value = '';
+            document.getElementById('new-prod-modelo').value = '';
+            document.getElementById('new-prod-detalle').value = '';
+            document.getElementById('new-prod-costo').value = '';
+            document.getElementById('new-prod-stock').value = '';
+            alert('¡Producto base registrado con éxito!');
+        }
+
+        async function actualizarProductoEditado(index, campo, valor) {
+            if(campo === 'modelo' || campo === 'detalle') {
+                inventarioProductos[index][campo] = valor;
+            } else if(campo === 'costoCompra' || campo === 'stock') {
+                inventarioProductos[index][campo] = parseFloat(valor) || 0;
+                if(inventarioProductos[index].stock > 0) {
+                    inventarioProductos[index].costoUnitario = inventarioProductos[index].costoCompra / inventarioProductos[index].stock;
+                }
+            }
+
+            let p = inventarioProductos[index];
+            await _supabase.from('productos').update({
+                modelo: p.modelo,
+                detalle: p.detalle,
+                costo_compra: p.costoCompra,
+                costo_unitario: p.costoUnitario,
+                stock: p.stock
+            }).eq('id', p.id);
+
+            actualizarSelectProductos();
+        }
+
+        async function eliminarProducto(index) {
+            if(confirm('¿Deseas eliminar este producto?')) {
+                let p = inventarioProductos[index];
+                inventarioProductos.splice(index, 1);
+                await _supabase.from('productos').delete().eq('id', p.id);
+                renderInventarioProductos();
+                actualizarSelectProductos();
+            }
+        }
+
+        async function agregarInsumo() {
+            let id = document.getElementById('new-ins-id').value.trim();
+            let categoria = document.getElementById('new-ins-cat').value.trim();
+            let nombre = document.getElementById('new-ins-nombre').value.trim();
+            let costoMedida = parseFloat(document.getElementById('new-ins-costo').value) || 0;
+            let stock = parseFloat(document.getElementById('new-ins-stock').value) || 0;
+
+            if(!id || !nombre) {
+                alert('Por favor llena al menos el ID y el Nombre.');
+                return;
+            }
+
+            let nuevoIns = { id, categoria, nombre, costoMedida, stock, min: 20 };
+            inventarioInsumos.push(nuevoIns);
+
+            await _supabase.from('insumos').insert({
+                id: nuevoIns.id,
+                categoria: nuevoIns.categoria,
+                nombre: nuevoIns.nombre,
+                costo_medida: nuevoIns.costoMedida,
+                stock: nuevoIns.stock,
+                min: nuevoIns.min
+            });
+
+            renderInventarioInsumos();
+
+            document.getElementById('new-ins-id').value = '';
+            document.getElementById('new-ins-cat').value = '';
+            document.getElementById('new-ins-nombre').value = '';
+            document.getElementById('new-ins-costo').value = '';
+            document.getElementById('new-ins-stock').value = '';
+            alert('¡Insumo registrado con éxito!');
+        }
+
+        async function actualizarInsumoEditado(index, campo, valor) {
+            if(campo === 'categoria' || campo === 'nombre') {
+                inventarioInsumos[index][campo] = valor;
+            } else if(campo === 'costoMedida' || campo === 'stock') {
+                inventarioInsumos[index][campo] = parseFloat(valor) || 0;
+            }
+
+            let i = inventarioInsumos[index];
+            await _supabase.from('insumos').update({
+                categoria: i.categoria,
+                nombre: i.nombre,
+                costo_medida: i.costoMedida,
+                stock: i.stock
+            }).eq('id', i.id);
+        }
+
+        async function eliminarInsumo(index) {
+            if(confirm('¿Deseas eliminar este insumo?')) {
+                let i = inventarioInsumos[index];
+                inventarioInsumos.splice(index, 1);
+                await _supabase.from('insumos').delete().eq('id', i.id);
+                renderInventarioInsumos();
+            }
+        }
+
+        async function guardarConfiguracion() {
+            config.fijo = parseFloat(document.getElementById('cfg-fijo').value) || 400;
+            config.variable = parseFloat(document.getElementById('cfg-variable').value) || 28;
+
+            await _supabase.from('config').upsert({ clave: 'fijo', valor: config.fijo });
+            await _supabase.from('config').upsert({ clave: 'variable', valor: config.variable });
+
+            calcularCotizacion();
+        }
+
+        function renderSeguimiento() {
+            let tbody = document.getElementById('tabla-seguimiento');
             tbody.innerHTML = '';
-            cotizaciones.forEach((ped, index) => {
+
+            if(cotizaciones.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay cotizaciones registradas.</td></tr>`;
+                return;
+            }
+
+            cotizaciones.forEach(cot => {
+                let badgeClass = 'badge-info';
+                if(cot.estado === 'Aceptado' || cot.estado === 'En Producción') badgeClass = 'badge-warning';
+                if(cot.estado === 'Entregado') badgeClass = 'badge-success';
+                if(cot.estado === 'Rechazado') badgeClass = 'badge-danger';
+
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${ped.id}</td>
-                    <td>${ped.cliente}</td>
-                    <td>${ped.producto} (${ped.cantidad} pzas)</td>
-                    <td>$${ped.total.toFixed(2)}</td>
-                    <td><span class="badge badge-warning">${ped.estado}</span></td>
+                    <td><strong>${cot.id}</strong></td>
+                    <td>${cot.cliente}</td>
+                    <td>${cot.productoNombre} <br><small style="color:var(--text-muted);">(${cot.cantidad} pzas, ${cot.tintas} tintas)</small></td>
+                    <td>$${cot.totalVenta.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td><span class="badge ${badgeClass}">${cot.estado}</span></td>
                     <td>
-                        <button class="btn" style="padding: 4px 8px; font-size: 0.8rem;" onclick="cambiarEstadoPedido(${index})">Avanzar</button>
+                        <select class="form-control" style="padding: 4px; font-size: 0.85rem;" onchange="cambiarEstadoCotizacion('${cot.id}', this.value)">
+                            <option value="Cotización" ${cot.estado === 'Cotización' ? 'selected' : ''}>Cotización (Pendiente)</option>
+                            <option value="Aceptado" ${cot.estado === 'Aceptado' ? 'selected' : ''}>Aceptar Pedido</option>
+                            <option value="En Producción" ${cot.estado === 'En Producción' ? 'selected' : ''}>En Producción</option>
+                            <option value="Entregado" ${cot.estado === 'Entregado' ? 'selected' : ''}>Terminado / Entregado</option>
+                            <option value="Rechazado" ${cot.estado === 'Rechazado' ? 'selected' : ''}>Rechazado</option>
+                        </select>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function cambiarEstadoPedido(index) {
-            if(cotizaciones[index].estado === 'Pendiente') {
-                cotizaciones[index].estado = 'En Proceso';
-            } else if(cotizaciones[index].estado === 'En Proceso') {
-                cotizaciones[index].estado = 'Entregado';
-            } else {
-                cotizaciones[index].estado = 'Pendiente';
-            }
-            renderizarSeguimiento();
-            actualizarDashboard();
-        }
-
-        function renderizarInventarioProductos() {
+        function renderInventarioProductos() {
             let tbody = document.getElementById('tabla-inventario-productos');
-            if(!tbody) return;
             tbody.innerHTML = '';
-            inventarioProductos.forEach(p => {
+            inventarioProductos.forEach((p, index) => {
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${p.id}</td>
-                    <td>${p.modelo}</td>
-                    <td>${p.detalle}</td>
-                    <td>$${p.costo_unitario || 0}</td>
-                    <td>${p.stock || 0}</td>
+                    <td><input type="text" class="editable-cell" value="${p.modelo}" onchange="actualizarProductoEditado(${index}, 'modelo', this.value)"></td>
+                    <td><input type="text" class="editable-cell" value="${p.detalle}" onchange="actualizarProductoEditado(${index}, 'detalle', this.value)"></td>
+                    <td><input type="number" class="editable-cell" value="${p.costoCompra}" onchange="actualizarProductoEditado(${index}, 'costoCompra', this.value)"></td>
+                    <td>$${p.costoUnitario.toFixed(2)}</td>
+                    <td><input type="number" class="editable-cell" value="${p.stock}" style="width: 80px;" onchange="actualizarProductoEditado(${index}, 'stock', this.value)"></td>
+                    <td><button class="btn btn-sm" style="background-color: var(--danger); padding: 4px 8px;" onclick="eliminarProducto(${index})">X</button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function renderizarInventarioInsumos() {
+        function renderInventarioInsumos() {
             let tbody = document.getElementById('tabla-inventario-insumos');
-            if(!tbody) return;
             tbody.innerHTML = '';
-            inventarioInsumos.forEach(i => {
+            inventarioInsumos.forEach((i, index) => {
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${i.id}</td>
-                    <td>${i.categoria}</td>
-                    <td>${i.nombre}</td>
-                    <td>$${i.costo_medida || 0}</td>
-                    <td>${i.stock || 0}</td>
+                    <td><input type="text" class="editable-cell" value="${i.categoria}" onchange="actualizarInsumoEditado(${index}, 'categoria', this.value)"></td>
+                    <td><input type="text" class="editable-cell" value="${i.nombre}" onchange="actualizarInsumoEditado(${index}, 'nombre', this.value)"></td>
+                    <td><input type="number" step="0.01" class="editable-cell" value="${i.costoMedida}" onchange="actualizarInsumoEditado(${index}, 'costoMedida', this.value)"></td>
+                    <td><input type="number" class="editable-cell" value="${i.stock}" style="width: 90px;" onchange="actualizarInsumoEditado(${index}, 'stock', this.value)"></td>
+                    <td><button class="btn btn-sm" style="background-color: var(--danger); padding: 4px 8px;" onclick="eliminarInsumo(${index})">X</button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function actualizarDashboard() {
-            let totalVentas = cotizaciones.reduce((acc, curr) => acc + curr.total, 0);
-            let activos = cotizaciones.filter(c => c.estado !== 'Entregado').length;
-
-            document.getElementById('dash-ventas').innerText = `$${totalVentas.toFixed(2)}`;
-            document.getElementById('dash-ganancia').innerText = `$${(totalVentas * 0.4).toFixed(2)}`;
+        function renderDashboard() {
+            let pedidosValidos = cotizaciones.filter(c => c.estado === 'Entregado' || c.estado === 'En Producción');
+            let totalVentasMes = pedidosValidos.reduce((acc, c) => acc + c.totalVenta, 0);
+            let gananciaTotalAcumulada = pedidosValidos.reduce((acc, c) => acc + (c.gananciaTotal || 0), 0);
+            let activos = cotizaciones.filter(c => c.estado === 'En Producción' || c.estado === 'Aceptado' || c.estado === 'Cotización').length;
+            
+            document.getElementById('dash-ventas').innerText = '$' + totalVentasMes.toLocaleString('es-MX', {minimumFractionDigits: 2});
+            document.getElementById('dash-ganancia').innerText = '$' + gananciaTotalAcumulada.toLocaleString('es-MX', {minimumFractionDigits: 2});
             document.getElementById('dash-activos').innerText = activos;
-            document.getElementById('dash-criticos').innerText = inventarioInsumos.filter(i => (i.stock || 0) < 5).length;
 
-            let dashTabla = document.getElementById('dash-ultimos-tabla');
-            if(!dashTabla) return;
+            let criticosCount = inventarioInsumos.filter(i => i.stock < i.min).length;
+            document.getElementById('dash-criticos').innerText = criticosCount;
+
+            let tbody = document.getElementById('dash-ultimos-tabla');
+            tbody.innerHTML = '';
+            
             if(cotizaciones.length === 0) {
-                dashTabla.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay pedidos recientes.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay pedidos recientes.</td></tr>`;
                 return;
             }
-            dashTabla.innerHTML = '';
-            cotizaciones.slice(0, 5).forEach(ped => {
+
+            cotizaciones.slice(-3).reverse().forEach(c => {
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${ped.id}</td>
-                    <td>${ped.cliente}</td>
-                    <td>${ped.producto}</td>
-                    <td>${ped.cantidad}</td>
-                    <td>$${ped.total.toFixed(2)}</td>
-                    <td><span class="badge badge-warning">${ped.estado}</span></td>
+                    <td>${c.id}</td>
+                    <td>${c.cliente}</td>
+                    <td>${c.productoNombre}</td>
+                    <td>${c.cantidad}</td>
+                    <td>$${c.totalVenta.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td><span class="badge badge-info">${c.estado}</span></td>
                 `;
-                dashTabla.appendChild(tr);
+                tbody.appendChild(tr);
             });
-        }
-
-        function agregarProductoBase() {
-            let id = document.getElementById('new-prod-id').value;
-            let modelo = document.getElementById('new-prod-modelo').value;
-            let detalle = document.getElementById('new-prod-detalle').value;
-            let costo = parseFloat(document.getElementById('new-prod-costo').value) || 0;
-            let stock = parseInt(document.getElementById('new-prod-stock').value) || 0;
-
-            if(!id || !modelo) {
-                alert('Por favor, completa al menos el ID y el Modelo.');
-                return;
-            }
-
-            let nuevo = { id, modelo, detalle, costo_compra: costo, stock, costo_unitario: stock > 0 ? costo / stock : costo };
-            inventarioProductos.push(nuevo);
-            renderizarInventarioProductos();
-            poblarSelectProductos();
-            alert('Producto base registrado con éxito.');
-        }
-
-        function agregarInsumo() {
-            let id = document.getElementById('new-ins-id').value;
-            let categoria = document.getElementById('new-ins-cat').value;
-            let nombre = document.getElementById('new-ins-nombre').value;
-            let costo = parseFloat(document.getElementById('new-ins-costo').value) || 0;
-            let stock = parseInt(document.getElementById('new-ins-stock').value) || 0;
-
-            if(!id || !nombre) {
-                alert('Por favor, completa al menos el ID y el Nombre del insumo.');
-                return;
-            }
-
-            let nuevo = { id, categoria, nombre, costo_medida: costo, stock };
-            inventarioInsumos.push(nuevo);
-            renderizarInventarioInsumos();
-            actualizarDashboard();
-            alert('Insumo registrado con éxito.');
-        }
-
-        function guardarConfiguracion() {
-            config.fijo = parseFloat(document.getElementById('cfg-fijo').value) || 400;
-            config.variable = parseFloat(document.getElementById('cfg-variable').value) || 28;
-            calcularCotizacion();
         }
     </script>
 </body>
