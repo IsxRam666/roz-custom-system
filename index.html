@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ROZ CUSTOM - Sistema de Costos y Cotizaciones</title>
+    <!-- Librería de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary: #8b5cf6;
@@ -401,7 +403,7 @@
                     </ul>
                 </div>
                 <div style="padding: 15px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border);">
-                    ROZ System v2.8
+                    ROZ System v2.9 (Cloud)
                 </div>
             </aside>
 
@@ -642,14 +644,14 @@
                                 <h3>🔴 Configuración de Costos Fijos</h3>
                                 <div class="form-group">
                                     <label>Costo fijo por preparación / marcos ($)</label>
-                                    <input type="number" id="cfg-fijo" class="form-control" value="400" oninput="guardarConfiguracion()">
+                                    <input type="number" id="cfg-fijo" class="form-control" value="400" onchange="guardarConfiguracion()">
                                 </div>
                             </div>
                             <div class="card">
                                 <h3>🟢 Configuración de Costos Variables</h3>
                                 <div class="form-group">
                                     <label>Costo variable base por pieza ($)</label>
-                                    <input type="number" id="cfg-variable" class="form-control" value="28" oninput="guardarConfiguracion()">
+                                    <input type="number" id="cfg-variable" class="form-control" value="28" onchange="guardarConfiguracion()">
                                 </div>
                             </div>
                         </div>
@@ -661,10 +663,22 @@
     </div>
 
     <script>
+        // CONFIGURACIÓN DE SUPABASE
+        const SUPABASE_URL = 'https://kkeagmmwnmjnecozxwat.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_lof61l1ntwlUQpw7FC3kRw_W1t0D_t5';
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // CONTRASEÑA DE ACCESO CONFIGURADA
         const PASSWORD_SISTEMA = "RozCustom";
 
-        function validarPassword() {
+        // Variables globales en memoria sincronizadas con Supabase
+        let inventarioProductos = [];
+        let inventarioInsumos = [];
+        let cotizaciones = [];
+        let config = { fijo: 400, variable: 28 };
+
+        async function validarPassword() {
             let passInput = document.getElementById('acceso-password').value;
             let errorDiv = document.getElementById('login-error');
 
@@ -672,11 +686,8 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app-container').style.display = 'block';
                 
-                // Inicializar la aplicación una vez autenticado
-                document.getElementById('cfg-fijo').value = config.fijo;
-                document.getElementById('cfg-variable').value = config.variable;
-                actualizarSelectProductos();
-                renderDashboard();
+                // Cargar datos iniciales desde la nube
+                await cargarDatosNube();
             } else {
                 errorDiv.style.display = 'block';
                 document.getElementById('acceso-password').value = '';
@@ -689,30 +700,90 @@
             }
         }
 
-        const defaultProductos = [
-            { id: 'PL-001', modelo: 'Playera Básica', detalle: 'Blanca / M (Paq 12)', costoCompra: 2990, costoUnitario: 249.17, stock: 12 },
-            { id: 'SU-001', modelo: 'Sudadera Hoodie', detalle: 'Negra / G (Paq 6)', costoCompra: 2400, costoUnitario: 400.00, stock: 6 },
-            { id: 'BO-001', modelo: 'Bolsa Tote Bag', detalle: 'Natural / Única', costoCompra: 1000, costoUnitario: 50.00, stock: 20 }
-        ];
+        // CARGAR DATOS DESDE SUPABASE
+        async function cargarDatosNube() {
+            try {
+                // 1. Productos
+                let { data: prodData } = await _supabase.from('productos').select('*');
+                if (prodData && prodData.length > 0) {
+                    inventarioProductos = prodData.map(p => ({
+                        id: p.id,
+                        modelo: p.modelo,
+                        detalle: p.detalle,
+                        costoCompra: Number(p.costo_compra),
+                        costoUnitario: Number(p.costo_unitario),
+                        stock: Number(p.stock)
+                    }));
+                } else {
+                    // Sembrar datos por defecto si está vacío
+                    inventarioProductos = [
+                        { id: 'PL-001', modelo: 'Playera Básica', detalle: 'Blanca / M (Paq 12)', costoCompra: 2990, costoUnitario: 249.17, stock: 12 },
+                        { id: 'SU-001', modelo: 'Sudadera Hoodie', detalle: 'Negra / G (Paq 6)', costoCompra: 2400, costoUnitario: 400.00, stock: 6 },
+                        { id: 'BO-001', modelo: 'Bolsa Tote Bag', detalle: 'Natural / Única', costoCompra: 1000, costoUnitario: 50.00, stock: 20 }
+                    ];
+                    for(let p of inventarioProductos) {
+                        await _supabase.from('productos').insert({ id: p.id, modelo: p.modelo, detalle: p.detalle, costo_compra: p.costoCompra, costo_unitario: p.costoUnitario, stock: p.stock });
+                    }
+                }
 
-        const defaultInsumos = [
-            { id: 'IN-001', categoria: 'Tintas', nombre: 'Tinta Negra (ml)', costoMedida: 0.30, stock: 850, min: 300 },
-            { id: 'IN-002', categoria: 'Tintas', nombre: 'Tinta Blanca (ml)', costoMedida: 0.40, stock: 200, min: 300 },
-            { id: 'IN-005', categoria: 'Empaque', nombre: 'Bolsas Celofán (pzas)', costoMedida: 2.00, stock: 85, min: 20 }
-        ];
+                // 2. Insumos
+                let { data: insData } = await _supabase.from('insumos').select('*');
+                if (insData && insData.length > 0) {
+                    inventarioInsumos = insData.map(i => ({
+                        id: i.id,
+                        categoria: i.categoria,
+                        nombre: i.nombre,
+                        costoMedida: Number(i.costo_medida),
+                        stock: Number(i.stock),
+                        min: Number(i.min || 20)
+                    }));
+                } else {
+                    inventarioInsumos = [
+                        { id: 'IN-001', categoria: 'Tintas', nombre: 'Tinta Negra (ml)', costoMedida: 0.30, stock: 850, min: 300 },
+                        { id: 'IN-002', categoria: 'Tintas', nombre: 'Tinta Blanca (ml)', costoMedida: 0.40, stock: 200, min: 300 },
+                        { id: 'IN-005', categoria: 'Empaque', nombre: 'Bolsas Celofán (pzas)', costoMedida: 2.00, stock: 85, min: 20 }
+                    ];
+                    for(let i of inventarioInsumos) {
+                        await _supabase.from('insumos').insert({ id: i.id, categoria: i.categoria, nombre: i.nombre, costo_medida: i.costoMedida, stock: i.stock, min: i.min });
+                    }
+                }
 
-        const defaultConfig = { fijo: 400, variable: 28 };
+                // 3. Cotizaciones
+                let { data: cotData } = await _supabase.from('cotizaciones').select('*');
+                if (cotData) {
+                    cotizaciones = cotData.map(c => ({
+                        id: c.id,
+                        cliente: c.cliente,
+                        prodId: c.prod_id,
+                        productoNombre: c.producto_nombre,
+                        cantidad: Number(c.cantidad),
+                        tintas: Number(c.tintas),
+                        totalVenta: Number(c.total_venta),
+                        gananciaTotal: Number(c.ganancia_total),
+                        estado: c.estado,
+                        inventarioDescontado: c.inventario_descontado
+                    }));
+                }
 
-        let inventarioProductos = JSON.parse(localStorage.getItem('roz_productos')) || defaultProductos;
-        let inventarioInsumos = JSON.parse(localStorage.getItem('roz_insumos')) || defaultInsumos;
-        let cotizaciones = JSON.parse(localStorage.getItem('roz_cotizaciones')) || [];
-        let config = JSON.parse(localStorage.getItem('roz_config')) || defaultConfig;
+                // 4. Configuración
+                let { data: cfgData } = await _supabase.from('config').select('*');
+                if (cfgData && cfgData.length > 0) {
+                    cfgData.forEach(c => {
+                        if(c.clave === 'fijo') config.fijo = Number(c.valor);
+                        if(c.clave === 'variable') config.variable = Number(c.valor);
+                    });
+                }
 
-        function guardarDatosLocal() {
-            localStorage.setItem('roz_productos', JSON.stringify(inventarioProductos));
-            localStorage.setItem('roz_insumos', JSON.stringify(inventarioInsumos));
-            localStorage.setItem('roz_cotizaciones', JSON.stringify(cotizaciones));
-            localStorage.setItem('roz_config', JSON.stringify(config));
+                // Render inicial
+                document.getElementById('cfg-fijo').value = config.fijo;
+                document.getElementById('cfg-variable').value = config.variable;
+                actualizarSelectProductos();
+                renderDashboard();
+
+            } catch (err) {
+                console.error("Error al sincronizar con Supabase:", err);
+                alert("Aviso: No se pudo conectar correctamente con la base de datos de Supabase. Revisa tu conexión a internet.");
+            }
         }
 
         function switchView(viewId, element) {
@@ -808,7 +879,7 @@
             return { totalVenta: totalVentaSugerido, gananciaTotal: gananciaNetaTotal, prodId: selectProd.value, cantidad, tintas };
         }
 
-        function guardarCotizacion() {
+        async function guardarCotizacion() {
             let cliente = document.getElementById('cot-cliente').value.trim() || 'Cliente General';
             let selectProd = document.getElementById('cot-producto');
             let prodId = selectProd.value;
@@ -831,12 +902,26 @@
             };
 
             cotizaciones.push(nuevaCot);
-            guardarDatosLocal();
+
+            // Guardar en Supabase
+            await _supabase.from('cotizaciones').insert({
+                id: nuevaCot.id,
+                cliente: nuevaCot.cliente,
+                prod_id: nuevaCot.prodId,
+                producto_nombre: nuevaCot.productoNombre,
+                cantidad: nuevaCot.cantidad,
+                tintas: nuevaCot.tintas,
+                total_venta: nuevaCot.totalVenta,
+                ganancia_total: nuevaCot.gananciaTotal,
+                estado: nuevaCot.estado,
+                inventario_descontado: nuevaCot.inventarioDescontado
+            });
+
             alert('¡Cotización guardada exitosamente con ID ' + nuevoId + '!');
             switchView('seguimiento', document.querySelectorAll('.nav-links li')[2]);
         }
 
-        function cambiarEstadoCotizacion(id, nuevoEstado) {
+        async function cambiarEstadoCotizacion(id, nuevoEstado) {
             let cot = cotizaciones.find(c => c.id === id);
             if(!cot) return;
 
@@ -847,17 +932,24 @@
                         alert('⚠️ Advertencia: No hay suficiente stock de este producto base (' + prod.stock + ' disponibles, se requieren ' + cot.cantidad + '). Se aplicará de todas formas.');
                     }
                     prod.stock -= cot.cantidad;
+                    await _supabase.from('productos').update({ stock: prod.stock }).eq('id', prod.id);
                 }
 
                 let tintaNegra = inventarioInsumos.find(i => i.id === 'IN-001');
-                if(tintaNegra) tintaNegra.stock -= (cot.tintas * 20);
+                if(tintaNegra) {
+                    tintaNegra.stock -= (cot.tintas * 20);
+                    await _supabase.from('insumos').update({ stock: tintaNegra.stock }).eq('id', tintaNegra.id);
+                }
 
                 cot.inventarioDescontado = true;
                 cot.estado = 'En Producción';
             } else if(nuevoEstado === 'Rechazado') {
                 if(cot.inventarioDescontado) {
                     let prod = inventarioProductos.find(p => p.id === cot.prodId);
-                    if(prod) prod.stock += cot.cantidad;
+                    if(prod) {
+                        prod.stock += cot.cantidad;
+                        await _supabase.from('productos').update({ stock: prod.stock }).eq('id', prod.id);
+                    }
                     cot.inventarioDescontado = false;
                 }
                 cot.estado = 'Rechazado';
@@ -865,11 +957,16 @@
                 cot.estado = nuevoEstado;
             }
 
-            guardarDatosLocal();
+            // Actualizar en Supabase
+            await _supabase.from('cotizaciones').update({
+                estado: cot.estado,
+                inventario_descontado: cot.inventarioDescontado
+            }).eq('id', cot.id);
+
             renderSeguimiento();
         }
 
-        function agregarProductoBase() {
+        async function agregarProductoBase() {
             let id = document.getElementById('new-prod-id').value.trim();
             let modelo = document.getElementById('new-prod-modelo').value.trim();
             let detalle = document.getElementById('new-prod-detalle').value.trim();
@@ -882,9 +979,19 @@
             }
 
             let costoUnitario = costoCompra > 0 && stock > 0 ? costoCompra / stock : 0;
+            let nuevoProd = { id, modelo, detalle, costoCompra, costoUnitario, stock };
 
-            inventarioProductos.push({ id, modelo, detalle, costoCompra, costoUnitario, stock });
-            guardarDatosLocal();
+            inventarioProductos.push(nuevoProd);
+
+            await _supabase.from('productos').insert({
+                id: nuevoProd.id,
+                modelo: nuevoProd.modelo,
+                detalle: nuevoProd.detalle,
+                costo_compra: nuevoProd.costoCompra,
+                costo_unitario: nuevoProd.costoUnitario,
+                stock: nuevoProd.stock
+            });
+
             renderInventarioProductos();
             actualizarSelectProductos();
 
@@ -896,7 +1003,7 @@
             alert('¡Producto base registrado con éxito!');
         }
 
-        function actualizarProductoEditado(index, campo, valor) {
+        async function actualizarProductoEditado(index, campo, valor) {
             if(campo === 'modelo' || campo === 'detalle') {
                 inventarioProductos[index][campo] = valor;
             } else if(campo === 'costoCompra' || campo === 'stock') {
@@ -905,20 +1012,30 @@
                     inventarioProductos[index].costoUnitario = inventarioProductos[index].costoCompra / inventarioProductos[index].stock;
                 }
             }
-            guardarDatosLocal();
+
+            let p = inventarioProductos[index];
+            await _supabase.from('productos').update({
+                modelo: p.modelo,
+                detalle: p.detalle,
+                costo_compra: p.costoCompra,
+                costo_unitario: p.costoUnitario,
+                stock: p.stock
+            }).eq('id', p.id);
+
             actualizarSelectProductos();
         }
 
-        function eliminarProducto(index) {
+        async function eliminarProducto(index) {
             if(confirm('¿Deseas eliminar este producto del inventario?')) {
+                let p = inventarioProductos[index];
                 inventarioProductos.splice(index, 1);
-                guardarDatosLocal();
+                await _supabase.from('productos').delete().eq('id', p.id);
                 renderInventarioProductos();
                 actualizarSelectProductos();
             }
         }
 
-        function agregarInsumo() {
+        async function agregarInsumo() {
             let id = document.getElementById('new-ins-id').value.trim();
             let categoria = document.getElementById('new-ins-cat').value.trim();
             let nombre = document.getElementById('new-ins-nombre').value.trim();
@@ -930,8 +1047,18 @@
                 return;
             }
 
-            inventarioInsumos.push({ id, categoria, nombre, costoMedida, stock, min: 20 });
-            guardarDatosLocal();
+            let nuevoIns = { id, categoria, nombre, costoMedida, stock, min: 20 };
+            inventarioInsumos.push(nuevoIns);
+
+            await _supabase.from('insumos').insert({
+                id: nuevoIns.id,
+                categoria: nuevoIns.categoria,
+                nombre: nuevoIns.nombre,
+                costo_medida: nuevoIns.costoMedida,
+                stock: nuevoIns.stock,
+                min: nuevoIns.min
+            });
+
             renderInventarioInsumos();
 
             document.getElementById('new-ins-id').value = '';
@@ -942,27 +1069,38 @@
             alert('¡Insumo registrado con éxito!');
         }
 
-        function actualizarInsumoEditado(index, campo, valor) {
+        async function actualizarInsumoEditado(index, campo, valor) {
             if(campo === 'categoria' || campo === 'nombre') {
                 inventarioInsumos[index][campo] = valor;
             } else if(campo === 'costoMedida' || campo === 'stock') {
                 inventarioInsumos[index][campo] = parseFloat(valor) || 0;
             }
-            guardarDatosLocal();
+
+            let i = inventarioInsumos[index];
+            await _supabase.from('insumos').update({
+                categoria: i.categoria,
+                nombre: i.nombre,
+                costo_medida: i.costoMedida,
+                stock: i.stock
+            }).eq('id', i.id);
         }
 
-        function eliminarInsumo(index) {
+        async function eliminarInsumo(index) {
             if(confirm('¿Deseas eliminar este insumo?')) {
+                let i = inventarioInsumos[index];
                 inventarioInsumos.splice(index, 1);
-                guardarDatosLocal();
+                await _supabase.from('insumos').delete().eq('id', i.id);
                 renderInventarioInsumos();
             }
         }
 
-        function guardarConfiguracion() {
+        async function guardarConfiguracion() {
             config.fijo = parseFloat(document.getElementById('cfg-fijo').value) || 400;
             config.variable = parseFloat(document.getElementById('cfg-variable').value) || 28;
-            guardarDatosLocal();
+
+            await _supabase.from('config').upsert({ clave: 'fijo', valor: config.fijo });
+            await _supabase.from('config').upsert({ clave: 'variable', valor: config.variable });
+
             calcularCotizacion();
         }
 
